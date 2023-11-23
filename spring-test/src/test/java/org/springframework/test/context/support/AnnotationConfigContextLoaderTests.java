@@ -36,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 class AnnotationConfigContextLoaderTests {
 
 	private static final String[] EMPTY_STRING_ARRAY = new String[0];
+
 	private static final Class<?>[] EMPTY_CLASS_ARRAY = new Class<?>[0];
 
 	private final AnnotationConfigContextLoader contextLoader = new AnnotationConfigContextLoader();
@@ -47,10 +48,10 @@ class AnnotationConfigContextLoaderTests {
 	@Test
 	void loadContextWithConfigContainingLocationsResultsInException() {
 		MergedContextConfiguration mergedConfig = new MergedContextConfiguration(getClass(),
-			new String[] { "config.xml" }, EMPTY_CLASS_ARRAY, EMPTY_STRING_ARRAY, contextLoader);
+				new String[] {"config.xml"}, EMPTY_CLASS_ARRAY, EMPTY_STRING_ARRAY, contextLoader);
 		assertThatIllegalStateException()
-			.isThrownBy(() -> contextLoader.loadContext(mergedConfig))
-			.withMessageContaining("does not support resource locations");
+				.isThrownBy(() -> contextLoader.loadContext(mergedConfig))
+				.withMessageContaining("does not support resource locations");
 	}
 
 	/**
@@ -79,11 +80,20 @@ class AnnotationConfigContextLoaderTests {
 				AnnotatedFooConfigInnerClassTestCase.class, EMPTY_STRING_ARRAY,
 				new Class<?>[] {AnnotatedFooConfigInnerClassTestCase.FooConfig.class},
 				EMPTY_STRING_ARRAY, contextLoader);
+
 		ApplicationContext context = contextLoader.loadContextForAotProcessing(mergedConfig);
 		assertThat(context).isInstanceOf(ConfigurableApplicationContext.class);
 		ConfigurableApplicationContext cac = (ConfigurableApplicationContext) context;
 		assertThat(cac.isActive()).as("ApplicationContext is active").isFalse();
+
 		assertThat(Arrays.stream(context.getBeanDefinitionNames())).anyMatch(name -> name.contains("FooConfig"));
+
+		System.out.println("====================================");
+		for (String beanDefinitionName : context.getBeanDefinitionNames()) {
+			System.out.println(beanDefinitionName);
+		}
+		System.out.println("====================================");
+
 		cac.close();
 	}
 
