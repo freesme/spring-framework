@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -155,16 +155,17 @@ public interface RestClient {
 	}
 
 	/**
-	 * Create a new {@code RestClient} based on the configuration of the
-	 * given {@code RestTemplate}. The returned builder is configured with the
-	 * template's
+	 * Create a new {@code RestClient} based on the configuration of the given
+	 * {@code RestTemplate}.
+	 * <p>The returned builder is configured with the following attributes of
+	 * the template.
 	 * <ul>
-	 * <li>{@link RestTemplate#getRequestFactory() ClientHttpRequestFactory},</li>
-	 * <li>{@link RestTemplate#getMessageConverters() HttpMessageConverters},</li>
-	 * <li>{@link RestTemplate#getInterceptors() ClientHttpRequestInterceptors},</li>
-	 * <li>{@link RestTemplate#getClientHttpRequestInitializers() ClientHttpRequestInitializers},</li>
-	 * <li>{@link RestTemplate#getUriTemplateHandler() UriBuilderFactory}, and</li>
-	 * <li>{@linkplain RestTemplate#getErrorHandler() error handler}.</li>
+	 * <li>{@link RestTemplate#getRequestFactory() ClientHttpRequestFactory}</li>
+	 * <li>{@link RestTemplate#getMessageConverters() HttpMessageConverters}</li>
+	 * <li>{@link RestTemplate#getInterceptors() ClientHttpRequestInterceptors}</li>
+	 * <li>{@link RestTemplate#getClientHttpRequestInitializers() ClientHttpRequestInitializers}</li>
+	 * <li>{@link RestTemplate#getUriTemplateHandler() UriBuilderFactory}</li>
+	 * <li>{@linkplain RestTemplate#getErrorHandler() error handler}</li>
 	 * </ul>
 	 * @param restTemplate the rest template to base the returned client's
 	 * configuration on
@@ -184,15 +185,16 @@ public interface RestClient {
 
 	/**
 	 * Obtain a {@code RestClient} builder based on the configuration of the
-	 * given {@code RestTemplate}. The returned builder is configured with the
-	 * template's
+	 * given {@code RestTemplate}.
+	 * <p>The returned builder is configured with the following attributes of
+	 * the template.
 	 * <ul>
-	 * <li>{@link RestTemplate#getRequestFactory() ClientHttpRequestFactory},</li>
-	 * <li>{@link RestTemplate#getMessageConverters() HttpMessageConverters},</li>
-	 * <li>{@link RestTemplate#getInterceptors() ClientHttpRequestInterceptors},</li>
-	 * <li>{@link RestTemplate#getClientHttpRequestInitializers() ClientHttpRequestInitializers},</li>
-	 * <li>{@link RestTemplate#getUriTemplateHandler() UriBuilderFactory}, and</li>
-	 * <li>{@linkplain RestTemplate#getErrorHandler() error handler}.</li>
+	 * <li>{@link RestTemplate#getRequestFactory() ClientHttpRequestFactory}</li>
+	 * <li>{@link RestTemplate#getMessageConverters() HttpMessageConverters}</li>
+	 * <li>{@link RestTemplate#getInterceptors() ClientHttpRequestInterceptors}</li>
+	 * <li>{@link RestTemplate#getClientHttpRequestInitializers() ClientHttpRequestInitializers}</li>
+	 * <li>{@link RestTemplate#getUriTemplateHandler() UriBuilderFactory}</li>
+	 * <li>{@linkplain RestTemplate#getErrorHandler() error handler}</li>
 	 * </ul>
 	 * @param restTemplate the rest template to base the returned builder's
 	 * configuration on
@@ -705,6 +707,11 @@ public interface RestClient {
 		 * Provide a function to map specific error status codes to an error handler.
 		 * <p>By default, if there are no matching status handlers, responses with
 		 * status codes &gt;= 400 wil throw a {@link RestClientResponseException}.
+		 * <p>Note that {@link IOException IOExceptions},
+		 * {@link java.io.UncheckedIOException UncheckedIOExceptions}, and
+		 * {@link org.springframework.http.converter.HttpMessageNotReadableException HttpMessageNotReadableExceptions}
+		 * thrown from {@code errorHandler} will be wrapped in a
+		 * {@link RestClientException}.
 		 * @param statusPredicate to match responses with
 		 * @param errorHandler handler that typically, though not necessarily,
 		 * throws an exception
@@ -717,6 +724,11 @@ public interface RestClient {
 		 * Provide a function to map specific error status codes to an error handler.
 		 * <p>By default, if there are no matching status handlers, responses with
 		 * status codes &gt;= 400 wil throw a {@link RestClientResponseException}.
+		 * <p>Note that {@link IOException IOExceptions},
+		 * {@link java.io.UncheckedIOException UncheckedIOExceptions}, and
+		 * {@link org.springframework.http.converter.HttpMessageNotReadableException HttpMessageNotReadableExceptions}
+		 * thrown from {@code errorHandler} will be wrapped in a
+		 * {@link RestClientException}.
 		 * @param errorHandler the error handler
 		 * @return this builder
 		 */

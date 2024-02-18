@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -99,6 +99,9 @@ final class DefaultRestClient implements RestClient {
 	@Nullable
 	private final HttpHeaders defaultHeaders;
 
+	@Nullable
+	private final Consumer<RequestHeadersSpec<?>> defaultRequest;
+
 	private final List<StatusHandler> defaultStatusHandlers;
 
 	private final DefaultRestClientBuilder builder;
@@ -116,6 +119,7 @@ final class DefaultRestClient implements RestClient {
 			@Nullable List<ClientHttpRequestInitializer> initializers,
 			UriBuilderFactory uriBuilderFactory,
 			@Nullable HttpHeaders defaultHeaders,
+			@Nullable Consumer<RequestHeadersSpec<?>> defaultRequest,
 			@Nullable List<StatusHandler> statusHandlers,
 			List<HttpMessageConverter<?>> messageConverters,
 			ObservationRegistry observationRegistry,
@@ -127,6 +131,7 @@ final class DefaultRestClient implements RestClient {
 		this.interceptors = interceptors;
 		this.uriBuilderFactory = uriBuilderFactory;
 		this.defaultHeaders = defaultHeaders;
+		this.defaultRequest = defaultRequest;
 		this.defaultStatusHandlers = (statusHandlers != null ? new ArrayList<>(statusHandlers) : new ArrayList<>());
 		this.messageConverters = messageConverters;
 		this.observationRegistry = observationRegistry;
@@ -184,12 +189,20 @@ final class DefaultRestClient implements RestClient {
 		return new DefaultRestClientBuilder(this.builder);
 	}
 
+	@Nullable
 	@SuppressWarnings({"rawtypes", "unchecked"})
-	private <T> T readWithMessageConverters(ClientHttpResponse clientResponse, Runnable callback, Type bodyType, Class<T> bodyClass) {
+	private <T> T readWithMessageConverters(ClientHttpResponse clientResponse, Runnable callback, Type bodyType,
+			Class<T> bodyClass) {
+
 		MediaType contentType = getContentType(clientResponse);
 
 		try (clientResponse) {
 			callback.run();
+
+			IntrospectingClientHttpResponse responseWrapper = new IntrospectingClientHttpResponse(clientResponse);
+			if (!responseWrapper.hasMessageBody() || responseWrapper.hasEmptyMessageBody()) {
+				return null;
+			}
 
 			for (HttpMessageConverter<?> messageConverter : this.messageConverters) {
 				if (messageConverter instanceof GenericHttpMessageConverter genericHttpMessageConverter) {
@@ -197,23 +210,30 @@ final class DefaultRestClient implements RestClient {
 						if (logger.isDebugEnabled()) {
 							logger.debug("Reading to [" + ResolvableType.forType(bodyType) + "]");
 						}
-						return (T) genericHttpMessageConverter.read(bodyType, null, clientResponse);
+						return (T) genericHttpMessageConverter.read(bodyType, null, responseWrapper);
 					}
 				}
 				if (messageConverter.canRead(bodyClass, contentType)) {
 					if (logger.isDebugEnabled()) {
 						logger.debug("Reading to [" + bodyClass.getName() + "] as \"" + contentType + "\"");
 					}
-					return (T) messageConverter.read((Class)bodyClass, clientResponse);
+					return (T) messageConverter.read((Class)bodyClass, responseWrapper);
 				}
 			}
 			throw new UnknownContentTypeException(bodyType, contentType,
-					clientResponse.getStatusCode(), clientResponse.getStatusText(),
-					clientResponse.getHeaders(), RestClientUtils.getBody(clientResponse));
+					responseWrapper.getStatusCode(), responseWrapper.getStatusText(),
+					responseWrapper.getHeaders(), RestClientUtils.getBody(responseWrapper));
 		}
 		catch (UncheckedIOException | IOException | HttpMessageNotReadableException ex) {
+			Throwable cause;
+			if (ex instanceof UncheckedIOException uncheckedIOException) {
+				cause = uncheckedIOException.getCause();
+			}
+			else {
+				cause = ex;
+			}
 			throw new RestClientException("Error while extracting response for type [" +
-					ResolvableType.forType(bodyType) + "] and content type [" + contentType + "]", ex);
+					ResolvableType.forType(bodyType) + "] and content type [" + contentType + "]", cause);
 		}
 	}
 
@@ -436,6 +456,9 @@ final class DefaultRestClient implements RestClient {
 			Observation observation = null;
 			URI uri = null;
 			try {
+				if (DefaultRestClient.this.defaultRequest != null) {
+					DefaultRestClient.this.defaultRequest.accept(this);
+				}
 				uri = initUri();
 				HttpHeaders headers = initHeaders();
 				ClientHttpRequest clientRequest = createRequest(uri);
@@ -585,11 +608,13 @@ final class DefaultRestClient implements RestClient {
 		}
 
 		@Override
+		@Nullable
 		public <T> T body(Class<T> bodyType) {
 			return readBody(bodyType, bodyType);
 		}
 
 		@Override
+		@Nullable
 		public <T> T body(ParameterizedTypeReference<T> bodyType) {
 			Type type = bodyType.getType();
 			Class<T> bodyClass = bodyClass(type);
@@ -637,6 +662,7 @@ final class DefaultRestClient implements RestClient {
 		}
 
 
+		@Nullable
 		private <T> T readBody(Type bodyType, Class<T> bodyClass) {
 			return DefaultRestClient.this.readWithMessageConverters(this.clientResponse, this::applyStatusHandlers,
 					bodyType, bodyClass);

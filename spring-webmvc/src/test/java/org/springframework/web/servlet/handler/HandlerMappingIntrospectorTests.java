@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -66,12 +66,12 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.springframework.web.servlet.HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE;
 
 /**
- * Unit tests for {@link HandlerMappingIntrospector}.
+ * Tests for {@link HandlerMappingIntrospector}.
  *
  * @author Rossen Stoyanchev
  * @since 4.3.1
  */
-public class HandlerMappingIntrospectorTests {
+class HandlerMappingIntrospectorTests {
 
 	@Test
 	void detectHandlerMappings() {
@@ -204,15 +204,16 @@ public class HandlerMappingIntrospectorTests {
 		assertThat(corsConfig.getAllowedMethods()).isEqualTo(Collections.singletonList("POST"));
 	}
 
-	@Test
-	void cacheFilter() throws Exception {
+	@ParameterizedTest
+	@ValueSource(strings = {"/test", "/resource/1234****"}) // gh-31937
+	void cacheFilter(String uri) throws Exception {
 		CorsConfiguration corsConfig = new CorsConfiguration();
 		TestMatchableHandlerMapping mapping = new TestMatchableHandlerMapping();
-		mapping.registerHandler("/test", new TestHandler(corsConfig));
+		mapping.registerHandler("/*", new TestHandler(corsConfig));
 
 		HandlerMappingIntrospector introspector = initIntrospector(mapping);
 
-		MockHttpServletRequest request = new MockHttpServletRequest("GET", "/test");
+		MockHttpServletRequest request = new MockHttpServletRequest("GET", uri);
 		MockHttpServletResponse response = new MockHttpServletResponse();
 
 		MockFilterChain filterChain = new MockFilterChain(
@@ -399,6 +400,7 @@ public class HandlerMappingIntrospectorTests {
 	}
 
 
+	@SuppressWarnings("serial")
 	private static class TestServlet extends HttpServlet {
 
 		@Override

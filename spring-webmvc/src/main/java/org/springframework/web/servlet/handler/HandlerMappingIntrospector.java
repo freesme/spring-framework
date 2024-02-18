@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -191,8 +191,12 @@ public class HandlerMappingIntrospector
 	public Filter createCacheFilter() {
 		return (request, response, chain) -> {
 			CachedResult previous = setCache((HttpServletRequest) request);
-			chain.doFilter(request, response);
-			resetCache(request, previous);
+			try {
+				chain.doFilter(request, response);
+			}
+			finally {
+				resetCache(request, previous);
+			}
 		};
 	}
 
@@ -206,7 +210,7 @@ public class HandlerMappingIntrospector
 	 * @since 6.0.14
 	 */
 	@Nullable
-	private CachedResult setCache(HttpServletRequest request) {
+	public CachedResult setCache(HttpServletRequest request) {
 		CachedResult previous = (CachedResult) request.getAttribute(CACHED_RESULT_ATTRIBUTE);
 		if (previous == null || !previous.matches(request)) {
 			HttpServletRequest wrapped = new AttributesPreservingRequest(request);
@@ -245,7 +249,7 @@ public class HandlerMappingIntrospector
 	 * a filter after delegating to the rest of the chain.
 	 * @since 6.0.14
 	 */
-	private void resetCache(ServletRequest request, @Nullable CachedResult cachedResult) {
+	public void resetCache(ServletRequest request, @Nullable CachedResult cachedResult) {
 		request.setAttribute(CACHED_RESULT_ATTRIBUTE, cachedResult);
 	}
 
@@ -363,7 +367,7 @@ public class HandlerMappingIntrospector
 	 * @since 6.0.14
 	 */
 	@SuppressWarnings("serial")
-	private static final class CachedResult {
+	public static final class CachedResult {
 
 		private final DispatcherType dispatcherType;
 
@@ -395,7 +399,7 @@ public class HandlerMappingIntrospector
 
 		public boolean matches(HttpServletRequest request) {
 			return (this.dispatcherType.equals(request.getDispatcherType()) &&
-					this.requestURI.matches(request.getRequestURI()));
+					this.requestURI.equals(request.getRequestURI()));
 		}
 
 		@Nullable

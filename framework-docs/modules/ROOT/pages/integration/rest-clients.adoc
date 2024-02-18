@@ -51,9 +51,9 @@ val defaultClient = RestClient.create()
 
 val customClient = RestClient.builder()
   .requestFactory(HttpComponentsClientHttpRequestFactory())
-  .messageConverters(converters -> converters.add(MyCustomMessageConverter()))
+  .messageConverters { converters -> converters.add(MyCustomMessageConverter()) }
   .baseUrl("https://example.com")
-  .defaultUriVariables(Map.of("variable", "foo"))
+  .defaultUriVariables(mapOf("variable" to "foo"))
   .defaultHeader("My-Header", "Foo")
   .requestInterceptor(myCustomInterceptor)
   .requestInitializer(myCustomInitializer)
@@ -906,8 +906,8 @@ For `WebClient`:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
-	WebClient client = WebClient.builder().baseUrl("https://api.github.com/").build();
-	WebClientAdapter adapter = WebClientAdapter.forClient(webClient)
+	WebClient webClient = WebClient.builder().baseUrl("https://api.github.com/").build();
+	WebClientAdapter adapter = WebClientAdapter.create(webClient);
 	HttpServiceProxyFactory factory = HttpServiceProxyFactory.builderFor(adapter).build();
 
 	RepositoryService service = factory.createClient(RepositoryService.class);
@@ -972,6 +972,9 @@ method parameters:
 | Add a variable for expand a placeholder in the request URL. The argument may be a
   `Map<String, ?>` with multiple variables, or an individual value. Type conversion
   is supported for non-String values.
+
+| `@RequestAttribute`
+| Provide an `Object` to add as a request attribute. Only supported by `WebClient`.
 
 | `@RequestBody`
 | Provide the body of the request either as an Object to be serialized, or a
@@ -1078,11 +1081,34 @@ underlying HTTP client, which operates at a lower level and provides more contro
 
 
 [[rest-http-interface-exceptions]]
-=== Exception Handling
+=== Error Handling
 
-By default, `WebClient` raises `WebClientResponseException` for 4xx and 5xx HTTP status
-codes. To customize this, you can register a response status handler that applies to all
-responses performed through the client:
+To customize error response handling, you need to configure the underlying HTTP client.
+
+For `RestClient`:
+
+By default, `RestClient` raises `RestClientException` for 4xx and 5xx HTTP status codes.
+To customize this, register a response status handler that applies to all responses
+performed through the client:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+	RestClient restClient = RestClient.builder()
+			.defaultStatusHandler(HttpStatusCode::isError, (request, response) -> ...)
+			.build();
+
+	RestClientAdapter adapter = RestClientAdapter.create(restClient);
+	HttpServiceProxyFactory factory = HttpServiceProxyFactory.builderFor(adapter).build();
+----
+
+For more details and options, such as suppressing error status codes, see the Javadoc of
+`defaultStatusHandler` in `RestClient.Builder`.
+
+For `WebClient`:
+
+By default, `WebClient` raises `WebClientResponseException` for 4xx and 5xx HTTP status codes.
+To customize this, register a response status handler that applies to all responses
+performed through the client:
 
 [source,java,indent=0,subs="verbatim,quotes"]
 ----
@@ -1090,10 +1116,28 @@ responses performed through the client:
 			.defaultStatusHandler(HttpStatusCode::isError, resp -> ...)
 			.build();
 
-	WebClientAdapter clientAdapter = WebClientAdapter.forClient(webClient);
-	HttpServiceProxyFactory factory = HttpServiceProxyFactory
-			.builder(clientAdapter).build();
+	WebClientAdapter adapter = WebClientAdapter.create(webClient);
+	HttpServiceProxyFactory factory = HttpServiceProxyFactory.builder(adapter).build();
 ----
 
 For more details and options, such as suppressing error status codes, see the Javadoc of
 `defaultStatusHandler` in `WebClient.Builder`.
+
+For `RestTemplate`:
+
+By default, `RestTemplate` raises `RestClientException` for 4xx and 5xx HTTP status codes.
+To customize this, register an error handler that applies to all responses
+performed through the client:
+
+[source,java,indent=0,subs="verbatim,quotes"]
+----
+    RestTemplate restTemplate = new RestTemplate();
+    restTemplate.setErrorHandler(myErrorHandler);
+
+    RestTemplateAdapter adapter = RestTemplateAdapter.create(restTemplate);
+    HttpServiceProxyFactory factory = HttpServiceProxyFactory.builderFor(adapter).build();
+----
+
+For more details and options, see the Javadoc of `setErrorHandler` in `RestTemplate` and
+the `ResponseErrorHandler` hierarchy.
+

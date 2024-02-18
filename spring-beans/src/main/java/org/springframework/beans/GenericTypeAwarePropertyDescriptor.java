@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,7 +54,9 @@ final class GenericTypeAwarePropertyDescriptor extends PropertyDescriptor {
 	private final Method writeMethod;
 
 	@Nullable
-	private volatile Set<Method> ambiguousWriteMethods;
+	private Set<Method> ambiguousWriteMethods;
+
+	private volatile boolean ambiguousWriteMethodsLogged;
 
 	@Nullable
 	private MethodParameter writeMethodParameter;
@@ -147,14 +149,30 @@ final class GenericTypeAwarePropertyDescriptor extends PropertyDescriptor {
 
 	public Method getWriteMethodForActualAccess() {
 		Assert.state(this.writeMethod != null, "No write method available");
-		Set<Method> ambiguousCandidates = this.ambiguousWriteMethods;
-		if (ambiguousCandidates != null) {
-			this.ambiguousWriteMethods = null;
+		if (this.ambiguousWriteMethods != null && !this.ambiguousWriteMethodsLogged) {
+			this.ambiguousWriteMethodsLogged = true;
 			LogFactory.getLog(GenericTypeAwarePropertyDescriptor.class).debug("Non-unique JavaBean property '" +
 					getName() + "' being accessed! Ambiguous write methods found next to actually used [" +
-					this.writeMethod + "]: " + ambiguousCandidates);
+					this.writeMethod + "]: " + this.ambiguousWriteMethods);
 		}
 		return this.writeMethod;
+	}
+
+	@Nullable
+	public Method getWriteMethodFallback(@Nullable Class<?> valueType) {
+		if (this.ambiguousWriteMethods != null) {
+			for (Method method : this.ambiguousWriteMethods) {
+				Class<?> paramType = method.getParameterTypes()[0];
+				if (valueType != null ? paramType.isAssignableFrom(valueType) : !paramType.isPrimitive()) {
+					return method;
+				}
+			}
+		}
+		return null;
+	}
+
+	public boolean hasUniqueWriteMethod() {
+		return (this.writeMethod != null && this.ambiguousWriteMethods == null);
 	}
 
 	public MethodParameter getWriteMethodParameter() {

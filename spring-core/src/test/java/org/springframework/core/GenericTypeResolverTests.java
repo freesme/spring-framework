@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,6 +39,7 @@ import static org.springframework.util.ReflectionUtils.findMethod;
  * @author Sam Brannen
  * @author Sebastien Deleuze
  * @author Stephane Nicoll
+ * @author Yanming Zhou
  */
 @SuppressWarnings({"unchecked", "rawtypes"})
 class GenericTypeResolverTests {
@@ -66,7 +67,7 @@ class GenericTypeResolverTests {
 	@Test
 	void nullIfNotResolvable() {
 		GenericClass<String> obj = new GenericClass<>();
-		assertThat((Object) resolveTypeArgument(obj.getClass(), GenericClass.class)).isNull();
+		assertThat(resolveTypeArgument(obj.getClass(), GenericClass.class)).isNull();
 	}
 
 	@Test
@@ -148,13 +149,13 @@ class GenericTypeResolverTests {
 	@Test  // SPR-11030
 	void getGenericsCannotBeResolved() {
 		Class<?>[] resolved = GenericTypeResolver.resolveTypeArguments(List.class, Iterable.class);
-		assertThat((Object) resolved).isNull();
+		assertThat(resolved).isNull();
 	}
 
 	@Test  // SPR-11052
 	void getRawMapTypeCannotBeResolved() {
 		Class<?>[] resolved = GenericTypeResolver.resolveTypeArguments(Map.class, Map.class);
-		assertThat((Object) resolved).isNull();
+		assertThat(resolved).isNull();
 	}
 
 	@Test  // SPR-11044
@@ -183,60 +184,31 @@ class GenericTypeResolverTests {
 	}
 
 	@Test
-	public void resolvePartiallySpecializedTypeVariables() {
+	void resolvePartiallySpecializedTypeVariables() {
 		Type resolved = resolveType(BiGenericClass.class.getTypeParameters()[0], TypeFixedBiGenericClass.class);
 		assertThat(resolved).isEqualTo(D.class);
 	}
 
 	@Test
-	public void resolveTransitiveTypeVariableWithDifferentName() {
+	void resolveTransitiveTypeVariableWithDifferentName() {
 		Type resolved = resolveType(BiGenericClass.class.getTypeParameters()[1], TypeFixedBiGenericClass.class);
 		assertThat(resolved).isEqualTo(E.class);
 	}
 
 	@Test
-	void resolveWildcardTypeWithUpperBound() {
-		Method method = method(MySimpleSuperclassType.class, "upperBound", List.class);
-		Type resolved = resolveType(method.getGenericParameterTypes()[0], MySimpleSuperclassType.class);
-		ResolvableType resolvableType = ResolvableType.forType(resolved);
-		assertThat(resolvableType.hasUnresolvableGenerics()).isFalse();
-		assertThat(resolvableType.resolveGenerics()).containsExactly(String.class);
+	void resolveMethodParameterWithNestedGenerics() {
+		Method method = method(WithMethodParameter.class, "nestedGenerics", List.class);
+		MethodParameter methodParameter = new MethodParameter(method, 0);
+		Type resolvedType = resolveType(methodParameter.getGenericParameterType(), WithMethodParameter.class);
+		ParameterizedTypeReference<List<Map<String, Integer>>> reference = new ParameterizedTypeReference<>() {};
+		assertThat(resolvedType).isEqualTo(reference.getType());
 	}
 
 	@Test
-	void resolveWildcardTypeWithUpperBoundWithResolvedType() {
-		Method method = method(MySimpleSuperclassType.class, "upperBoundWithResolvedType", List.class);
-		Type resolved = resolveType(method.getGenericParameterTypes()[0], MySimpleSuperclassType.class);
-		ResolvableType resolvableType = ResolvableType.forType(resolved);
-		assertThat(resolvableType.hasUnresolvableGenerics()).isFalse();
-		assertThat(resolvableType.resolveGenerics()).containsExactly(Integer.class);
-	}
-
-	@Test
-	void resolveWildcardTypeWithLowerBound() {
-		Method method = method(MySimpleSuperclassType.class, "lowerBound", List.class);
-		Type resolved = resolveType(method.getGenericParameterTypes()[0], MySimpleSuperclassType.class);
-		ResolvableType resolvableType = ResolvableType.forType(resolved);
-		assertThat(resolvableType.hasUnresolvableGenerics()).isFalse();
-		assertThat(resolvableType.resolveGenerics()).containsExactly(String.class);
-	}
-
-	@Test
-	void resolveWildcardTypeWithLowerBoundWithResolvedType() {
-		Method method = method(MySimpleSuperclassType.class, "lowerBoundWithResolvedType", List.class);
-		Type resolved = resolveType(method.getGenericParameterTypes()[0], MySimpleSuperclassType.class);
-		ResolvableType resolvableType = ResolvableType.forType(resolved);
-		assertThat(resolvableType.hasUnresolvableGenerics()).isFalse();
-		assertThat(resolvableType.resolveGenerics()).containsExactly(Integer.class);
-	}
-
-	@Test
-	void resolveWildcardTypeWithUnbounded() {
-		Method method = method(MySimpleSuperclassType.class, "unbounded", List.class);
-		Type resolved = resolveType(method.getGenericParameterTypes()[0], MySimpleSuperclassType.class);
-		ResolvableType resolvableType = ResolvableType.forType(resolved);
-		assertThat(resolvableType.hasUnresolvableGenerics()).isFalse();
-		assertThat(resolvableType.resolveGenerics()).containsExactly(Object.class);
+	void resolveNestedTypeVariable() throws Exception {
+		Type resolved = resolveType(ListOfListSupplier.class.getMethod("get").getGenericReturnType(),
+				StringListOfListSupplier.class);
+		assertThat(ResolvableType.forType(resolved).getGeneric(0).getGeneric(0).resolve()).isEqualTo(String.class);
 	}
 
 	private static Method method(Class<?> target, String methodName, Class<?>... parameterTypes) {
@@ -261,21 +233,6 @@ class GenericTypeResolverTests {
 	}
 
 	public abstract class MySuperclassType<T> {
-
-		public void upperBound(List<? extends T> list) {
-		}
-
-		public void upperBoundWithResolvedType(List<? extends Integer> list) {
-		}
-
-		public void lowerBound(List<? extends T> list) {
-		}
-
-		public void lowerBoundWithResolvedType(List<? super Integer> list) {
-		}
-
-		public void unbounded(List<?> list) {
-		}
 	}
 
 	public class MySimpleSuperclassType extends MySuperclassType<String> {
@@ -426,6 +383,19 @@ class GenericTypeResolverTests {
 	}
 
 	interface IdFixingRepository<T> extends Repository<T, Long> {
+	}
+
+	static class WithMethodParameter {
+		public void nestedGenerics(List<Map<String, Integer>> input) {
+		}
+	}
+
+	public interface ListOfListSupplier<T> {
+
+		List<List<T>> get();
+	}
+
+	public interface StringListOfListSupplier extends ListOfListSupplier<String> {
 	}
 
 }

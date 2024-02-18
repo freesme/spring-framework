@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,6 +52,7 @@ import static org.assertj.core.api.Assertions.assertThatException;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.within;
 import static org.assertj.core.api.InstanceOfAssertFactories.BOOLEAN;
+import static org.springframework.expression.spel.standard.SpelExpressionTestUtils.assertIsCompiled;
 
 /**
  * Checks SpelCompiler behavior. This should cover compilation all compiled node types.
@@ -63,7 +64,7 @@ import static org.assertj.core.api.InstanceOfAssertFactories.BOOLEAN;
 public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 
 	/*
-	 * Further TODOs for compilation:
+	 * TODO Potential optimizations for SpEL compilation:
 	 *
 	 * - OpMinus with a single literal operand could be treated as a negative literal. Will save a
 	 *   pointless loading of 0 and then a subtract instruction in code gen.
@@ -155,44 +156,44 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 		assertThat(expression.getValue()).isEqualTo(int[][].class);
 
 		expression = parse("T(int)");
-		assertThat(expression.getValue()).isEqualTo(Integer.TYPE);
+		assertThat(expression.getValue()).isEqualTo(int.class);
 		assertCanCompile(expression);
-		assertThat(expression.getValue()).isEqualTo(Integer.TYPE);
+		assertThat(expression.getValue()).isEqualTo(int.class);
 
 		expression = parse("T(byte)");
-		assertThat(expression.getValue()).isEqualTo(Byte.TYPE);
+		assertThat(expression.getValue()).isEqualTo(byte.class);
 		assertCanCompile(expression);
-		assertThat(expression.getValue()).isEqualTo(Byte.TYPE);
+		assertThat(expression.getValue()).isEqualTo(byte.class);
 
 		expression = parse("T(char)");
-		assertThat(expression.getValue()).isEqualTo(Character.TYPE);
+		assertThat(expression.getValue()).isEqualTo(char.class);
 		assertCanCompile(expression);
-		assertThat(expression.getValue()).isEqualTo(Character.TYPE);
+		assertThat(expression.getValue()).isEqualTo(char.class);
 
 		expression = parse("T(short)");
-		assertThat(expression.getValue()).isEqualTo(Short.TYPE);
+		assertThat(expression.getValue()).isEqualTo(short.class);
 		assertCanCompile(expression);
-		assertThat(expression.getValue()).isEqualTo(Short.TYPE);
+		assertThat(expression.getValue()).isEqualTo(short.class);
 
 		expression = parse("T(long)");
-		assertThat(expression.getValue()).isEqualTo(Long.TYPE);
+		assertThat(expression.getValue()).isEqualTo(long.class);
 		assertCanCompile(expression);
-		assertThat(expression.getValue()).isEqualTo(Long.TYPE);
+		assertThat(expression.getValue()).isEqualTo(long.class);
 
 		expression = parse("T(float)");
-		assertThat(expression.getValue()).isEqualTo(Float.TYPE);
+		assertThat(expression.getValue()).isEqualTo(float.class);
 		assertCanCompile(expression);
-		assertThat(expression.getValue()).isEqualTo(Float.TYPE);
+		assertThat(expression.getValue()).isEqualTo(float.class);
 
 		expression = parse("T(double)");
-		assertThat(expression.getValue()).isEqualTo(Double.TYPE);
+		assertThat(expression.getValue()).isEqualTo(double.class);
 		assertCanCompile(expression);
-		assertThat(expression.getValue()).isEqualTo(Double.TYPE);
+		assertThat(expression.getValue()).isEqualTo(double.class);
 
 		expression = parse("T(boolean)");
-		assertThat(expression.getValue()).isEqualTo(Boolean.TYPE);
+		assertThat(expression.getValue()).isEqualTo(boolean.class);
 		assertCanCompile(expression);
-		assertThat(expression.getValue()).isEqualTo(Boolean.TYPE);
+		assertThat(expression.getValue()).isEqualTo(boolean.class);
 
 		expression = parse("T(Missing)");
 		assertGetValueFail(expression);
@@ -250,7 +251,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	void operatorInstanceOf_SPR14250() throws Exception {
+	void operatorInstanceOf_SPR14250() {
 		// primitive left operand - should get boxed, return true
 		expression = parse("3 instanceof T(Integer)");
 		assertThat(expression.getValue()).asInstanceOf(BOOLEAN).isTrue();
@@ -297,7 +298,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	void stringLiteral() throws Exception {
+	void stringLiteral() {
 		expression = parser.parseExpression("'abcde'");
 		assertThat(expression.getValue(new TestClass1(), String.class)).isEqualTo("abcde");
 		assertCanCompile(expression);
@@ -312,7 +313,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	void nullLiteral() throws Exception {
+	void nullLiteral() {
 		expression = parser.parseExpression("null");
 		Object resultI = expression.getValue(new TestClass1(), Object.class);
 		assertCanCompile(expression);
@@ -323,11 +324,11 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	void realLiteral() throws Exception {
+	void realLiteral() {
 		expression = parser.parseExpression("3.4d");
-		double resultI = expression.getValue(new TestClass1(), Double.TYPE);
+		double resultI = expression.getValue(new TestClass1(), double.class);
 		assertCanCompile(expression);
-		double resultC = expression.getValue(new TestClass1(), Double.TYPE);
+		double resultC = expression.getValue(new TestClass1(), double.class);
 		assertThat(resultI).isCloseTo(3.4d, within(0.1d));
 
 		assertThat(resultC).isCloseTo(3.4d, within(0.1d));
@@ -337,7 +338,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 
 	@SuppressWarnings("rawtypes")
 	@Test
-	void inlineList() throws Exception {
+	void inlineList() {
 		expression = parser.parseExpression("'abcde'.substring({1,3,4}[0])");
 		Object o = expression.getValue();
 		assertThat(o).isEqualTo("bcde");
@@ -376,7 +377,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 
 	@SuppressWarnings("rawtypes")
 	@Test
-	void nestedInlineLists() throws Exception {
+	void nestedInlineLists() {
 		Object o = null;
 
 		expression = parser.parseExpression("{{1,2,3},{4,5,6},{7,8,9}}");
@@ -451,11 +452,11 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	void intLiteral() throws Exception {
+	void intLiteral() {
 		expression = parser.parseExpression("42");
-		int resultI = expression.getValue(new TestClass1(), Integer.TYPE);
+		int resultI = expression.getValue(new TestClass1(), int.class);
 		assertCanCompile(expression);
-		int resultC = expression.getValue(new TestClass1(), Integer.TYPE);
+		int resultC = expression.getValue(new TestClass1(), int.class);
 		assertThat(resultI).isEqualTo(42);
 		assertThat(resultC).isEqualTo(42);
 
@@ -482,38 +483,38 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	void longLiteral() throws Exception {
+	void longLiteral() {
 		expression = parser.parseExpression("99L");
-		long resultI = expression.getValue(new TestClass1(), Long.TYPE);
+		long resultI = expression.getValue(new TestClass1(), long.class);
 		assertCanCompile(expression);
-		long resultC = expression.getValue(new TestClass1(), Long.TYPE);
+		long resultC = expression.getValue(new TestClass1(), long.class);
 		assertThat(resultI).isEqualTo(99L);
 		assertThat(resultC).isEqualTo(99L);
 	}
 
 	@Test
-	void booleanLiteral() throws Exception {
+	void booleanLiteral() {
 		expression = parser.parseExpression("true");
-		boolean resultI = expression.getValue(1, Boolean.TYPE);
+		boolean resultI = expression.getValue(1, boolean.class);
 		assertThat(resultI).isTrue();
 		assertThat(SpelCompiler.compile(expression)).isTrue();
-		boolean resultC = expression.getValue(1, Boolean.TYPE);
+		boolean resultC = expression.getValue(1, boolean.class);
 		assertThat(resultC).isTrue();
 
 		expression = parser.parseExpression("false");
-		resultI = expression.getValue(1, Boolean.TYPE);
+		resultI = expression.getValue(1, boolean.class);
 		assertThat(resultI).isFalse();
 		assertThat(SpelCompiler.compile(expression)).isTrue();
-		resultC = expression.getValue(1, Boolean.TYPE);
+		resultC = expression.getValue(1, boolean.class);
 		assertThat(resultC).isFalse();
 	}
 
 	@Test
-	void floatLiteral() throws Exception {
+	void floatLiteral() {
 		expression = parser.parseExpression("3.4f");
-		float resultI = expression.getValue(new TestClass1(), Float.TYPE);
+		float resultI = expression.getValue(new TestClass1(), float.class);
 		assertCanCompile(expression);
-		float resultC = expression.getValue(new TestClass1(), Float.TYPE);
+		float resultC = expression.getValue(new TestClass1(), float.class);
 		assertThat(resultI).isCloseTo(3.4f, within(0.1f));
 
 		assertThat(resultC).isCloseTo(3.4f, within(0.1f));
@@ -522,56 +523,56 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	void opOr() throws Exception {
+	void opOr() {
 		Expression expression = parser.parseExpression("false or false");
-		boolean resultI = expression.getValue(1, Boolean.TYPE);
+		boolean resultI = expression.getValue(1, boolean.class);
 		SpelCompiler.compile(expression);
-		boolean resultC = expression.getValue(1, Boolean.TYPE);
+		boolean resultC = expression.getValue(1, boolean.class);
 		assertThat(resultI).isFalse();
 		assertThat(resultC).isFalse();
 
 		expression = parser.parseExpression("false or true");
-		resultI = expression.getValue(1, Boolean.TYPE);
+		resultI = expression.getValue(1, boolean.class);
 		assertCanCompile(expression);
-		resultC = expression.getValue(1, Boolean.TYPE);
+		resultC = expression.getValue(1, boolean.class);
 		assertThat(resultI).isTrue();
 		assertThat(resultC).isTrue();
 
 		expression = parser.parseExpression("true or false");
-		resultI = expression.getValue(1, Boolean.TYPE);
+		resultI = expression.getValue(1, boolean.class);
 		assertCanCompile(expression);
-		resultC = expression.getValue(1, Boolean.TYPE);
+		resultC = expression.getValue(1, boolean.class);
 		assertThat(resultI).isTrue();
 		assertThat(resultC).isTrue();
 
 		expression = parser.parseExpression("true or true");
-		resultI = expression.getValue(1, Boolean.TYPE);
+		resultI = expression.getValue(1, boolean.class);
 		assertCanCompile(expression);
-		resultC = expression.getValue(1, Boolean.TYPE);
+		resultC = expression.getValue(1, boolean.class);
 		assertThat(resultI).isTrue();
 		assertThat(resultC).isTrue();
 
 		TestClass4 tc = new TestClass4();
 		expression = parser.parseExpression("getfalse() or gettrue()");
-		resultI = expression.getValue(tc, Boolean.TYPE);
+		resultI = expression.getValue(tc, boolean.class);
 		assertCanCompile(expression);
-		resultC = expression.getValue(tc, Boolean.TYPE);
+		resultC = expression.getValue(tc, boolean.class);
 		assertThat(resultI).isTrue();
 		assertThat(resultC).isTrue();
 
 		// Can't compile this as we aren't going down the getfalse() branch in our evaluation
 		expression = parser.parseExpression("gettrue() or getfalse()");
-		resultI = expression.getValue(tc, Boolean.TYPE);
+		resultI = expression.getValue(tc, boolean.class);
 		assertCantCompile(expression);
 
 		expression = parser.parseExpression("getA() or getB()");
 		tc.a = true;
 		tc.b = true;
-		resultI = expression.getValue(tc, Boolean.TYPE);
+		resultI = expression.getValue(tc, boolean.class);
 		assertCantCompile(expression); // Haven't yet been into second branch
 		tc.a = false;
 		tc.b = true;
-		resultI = expression.getValue(tc, Boolean.TYPE);
+		resultI = expression.getValue(tc, boolean.class);
 		assertCanCompile(expression); // Now been down both
 		assertThat(resultI).isTrue();
 
@@ -584,32 +585,32 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void opAnd() throws Exception {
+	void opAnd() {
 		Expression expression = parser.parseExpression("false and false");
-		boolean resultI = expression.getValue(1, Boolean.TYPE);
+		boolean resultI = expression.getValue(1, boolean.class);
 		SpelCompiler.compile(expression);
-		boolean resultC = expression.getValue(1, Boolean.TYPE);
+		boolean resultC = expression.getValue(1, boolean.class);
 		assertThat(resultI).isFalse();
 		assertThat(resultC).isFalse();
 
 		expression = parser.parseExpression("false and true");
-		resultI = expression.getValue(1, Boolean.TYPE);
+		resultI = expression.getValue(1, boolean.class);
 		SpelCompiler.compile(expression);
-		resultC = expression.getValue(1, Boolean.TYPE);
+		resultC = expression.getValue(1, boolean.class);
 		assertThat(resultI).isFalse();
 		assertThat(resultC).isFalse();
 
 		expression = parser.parseExpression("true and false");
-		resultI = expression.getValue(1, Boolean.TYPE);
+		resultI = expression.getValue(1, boolean.class);
 		SpelCompiler.compile(expression);
-		resultC = expression.getValue(1, Boolean.TYPE);
+		resultC = expression.getValue(1, boolean.class);
 		assertThat(resultI).isFalse();
 		assertThat(resultC).isFalse();
 
 		expression = parser.parseExpression("true and true");
-		resultI = expression.getValue(1, Boolean.TYPE);
+		resultI = expression.getValue(1, boolean.class);
 		SpelCompiler.compile(expression);
-		resultC = expression.getValue(1, Boolean.TYPE);
+		resultC = expression.getValue(1, boolean.class);
 		assertThat(resultI).isTrue();
 		assertThat(resultC).isTrue();
 
@@ -617,22 +618,22 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 
 		// Can't compile this as we aren't going down the gettrue() branch in our evaluation
 		expression = parser.parseExpression("getfalse() and gettrue()");
-		resultI = expression.getValue(tc, Boolean.TYPE);
+		resultI = expression.getValue(tc, boolean.class);
 		assertCantCompile(expression);
 
 		expression = parser.parseExpression("getA() and getB()");
 		tc.a = false;
 		tc.b = false;
-		resultI = expression.getValue(tc, Boolean.TYPE);
+		resultI = expression.getValue(tc, boolean.class);
 		assertCantCompile(expression); // Haven't yet been into second branch
 		tc.a = true;
 		tc.b = false;
-		resultI = expression.getValue(tc, Boolean.TYPE);
+		resultI = expression.getValue(tc, boolean.class);
 		assertCanCompile(expression); // Now been down both
 		assertThat(resultI).isFalse();
 		tc.a = true;
 		tc.b = true;
-		resultI = expression.getValue(tc, Boolean.TYPE);
+		resultI = expression.getValue(tc, boolean.class);
 		assertThat(resultI).isTrue();
 
 		boolean b = true;
@@ -644,7 +645,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void operatorNot() throws Exception {
+	void operatorNot() {
 		expression = parse("!true");
 		assertThat(expression.getValue()).isEqualTo(false);
 		assertCanCompile(expression);
@@ -669,7 +670,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void ternary() throws Exception {
+	void ternary() {
 		Expression expression = parser.parseExpression("true?'a':'b'");
 		String resultI = expression.getValue(String.class);
 		assertCanCompile(expression);
@@ -702,7 +703,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void ternaryWithBooleanReturn_SPR12271() {
+	void ternaryWithBooleanReturn_SPR12271() {
 		expression = parser.parseExpression("T(Boolean).TRUE?'abc':'def'");
 		assertThat(expression.getValue()).isEqualTo("abc");
 		assertCanCompile(expression);
@@ -715,7 +716,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void nullsafeFieldPropertyDereferencing_SPR16489() throws Exception {
+	void nullsafeFieldPropertyDereferencing_SPR16489() {
 		FooObjectHolder foh = new FooObjectHolder();
 		StandardEvaluationContext context = new StandardEvaluationContext();
 		context.setRootObject(foh);
@@ -772,7 +773,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test  // gh-27421
-	public void nullSafeMethodChainingWithNonStaticVoidMethod() throws Exception {
+	public void nullSafeMethodChainingWithNonStaticVoidMethod() {
 		FooObjectHolder foh = new FooObjectHolder();
 		StandardEvaluationContext context = new StandardEvaluationContext(foh);
 		SpelExpression expression = (SpelExpression) parser.parseExpression("getFoo()?.doFoo()");
@@ -800,7 +801,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void nullsafeMethodChaining_SPR16489() throws Exception {
+	void nullsafeMethodChaining_SPR16489() {
 		FooObjectHolder foh = new FooObjectHolder();
 		StandardEvaluationContext context = new StandardEvaluationContext();
 		context.setRootObject(foh);
@@ -902,7 +903,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void elvis() throws Exception {
+	void elvis() {
 		Expression expression = parser.parseExpression("'a'?:'b'");
 		String resultI = expression.getValue(String.class);
 		assertCanCompile(expression);
@@ -926,7 +927,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void variableReference_root() throws Exception {
+	void variableReference_root() {
 		String s = "hello";
 		Expression expression = parser.parseExpression("#root");
 		String resultI = expression.getValue(s, String.class);
@@ -956,7 +957,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void compiledExpressionShouldWorkWhenUsingCustomFunctionWithVarargs() throws Exception {
+	void compiledExpressionShouldWorkWhenUsingCustomFunctionWithVarargs() throws Exception {
 		StandardEvaluationContext context = null;
 
 		// Here the target method takes Object... and we are passing a string
@@ -996,7 +997,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void functionReference() throws Exception {
+	void functionReference() throws Exception {
 		EvaluationContext ctx = new StandardEvaluationContext();
 		Method m = getClass().getDeclaredMethod("concat", String.class, String.class);
 		ctx.setVariable("concat",m);
@@ -1020,7 +1021,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 		ctx.setVariable("b", "boo");
 		assertThat(expression.getValue(ctx)).isEqualTo("fooboo");
 
-		m = Math.class.getDeclaredMethod("pow", Double.TYPE, Double.TYPE);
+		m = Math.class.getDeclaredMethod("pow", double.class, double.class);
 		ctx.setVariable("kapow",m);
 		expression = parser.parseExpression("#kapow(2.0d,2.0d)");
 		assertThat(expression.getValue(ctx).toString()).isEqualTo("4.0");
@@ -1083,7 +1084,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void functionReferenceVisibility_SPR12359() throws Exception {
+	void functionReferenceVisibility_SPR12359() throws Exception {
 		// Confirms visibility of what is being called.
 		StandardEvaluationContext context = new StandardEvaluationContext(new Object[] {"1"});
 		context.registerFunction("doCompare", SomeCompareMethod.class.getDeclaredMethod(
@@ -1105,10 +1106,10 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void functionReferenceNonCompilableArguments_SPR12359() throws Exception {
+	void functionReferenceNonCompilableArguments_SPR12359() throws Exception {
 		StandardEvaluationContext context = new StandardEvaluationContext(new Object[] {"1"});
 		context.registerFunction("negate", SomeCompareMethod2.class.getDeclaredMethod(
-				"negate", Integer.TYPE));
+				"negate", int.class));
 		context.setVariable("arg", "2");
 		int[] ints = new int[] {1,2,3};
 		context.setVariable("ints",ints);
@@ -1120,7 +1121,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void functionReferenceVarargs_SPR12359() throws Exception {
+	void functionReferenceVarargs_SPR12359() throws Exception {
 		StandardEvaluationContext context = new StandardEvaluationContext();
 		context.registerFunction("append",
 				SomeCompareMethod2.class.getDeclaredMethod("append", String[].class));
@@ -1204,12 +1205,12 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 		assertCanCompile(expression);
 		assertThat(expression.getValue(context, new SomeCompareMethod2()).toString()).isEqualTo("xyz");
 
-		// TODO fails due to conversionservice handling of String[] to Object...
-		//	expression = parser.parseExpression("#append2(#stringArray)");
-		//	assertEquals("xyz", expression.getValue(context).toString());
-		//	assertTrue(((SpelNodeImpl)((SpelExpression) expression).getAST()).isCompilable());
-		//	assertCanCompile(expression);
-		//	assertEquals("xyz", expression.getValue(context).toString());
+		// TODO Determine why the String[] is passed as the first element of the Object... varargs array instead of the entire varargs array.
+		// expression = parser.parseExpression("#append2(#stringArray)");
+		// assertThat(expression.getValue(context)).hasToString("xyz");
+		// assertThat(((SpelNodeImpl) ((SpelExpression) expression).getAST()).isCompilable()).isTrue();
+		// assertCanCompile(expression);
+		// assertThat(expression.getValue(context)).hasToString("xyz");
 
 		expression = parser.parseExpression("#sum(1,2,3)");
 		assertThat(expression.getValue(context)).isEqualTo(6);
@@ -1317,7 +1318,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void functionReferenceVarargs() throws Exception {
+	void functionReferenceVarargs() throws Exception {
 		EvaluationContext ctx = new StandardEvaluationContext();
 		Method m = getClass().getDeclaredMethod("join", String[].class);
 		ctx.setVariable("join", m);
@@ -1328,7 +1329,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void variableReference_userDefined() throws Exception {
+	void variableReference_userDefined() {
 		EvaluationContext ctx = new StandardEvaluationContext();
 		ctx.setVariable("target", "abc");
 		expression = parser.parseExpression("#target");
@@ -1356,7 +1357,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void opLt() throws Exception {
+	void opLt() {
 		expression = parse("3.0d < 4.0d");
 		assertCanCompile(expression);
 		assertThat((Boolean) expression.getValue()).isTrue();
@@ -1406,7 +1407,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void opLe() throws Exception {
+	void opLe() {
 		expression = parse("3.0d <= 4.0d");
 		assertCanCompile(expression);
 		assertThat((Boolean) expression.getValue()).isTrue();
@@ -1465,7 +1466,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void opGt() throws Exception {
+	void opGt() {
 		expression = parse("3.0d > 4.0d");
 		assertCanCompile(expression);
 		assertThat((Boolean) expression.getValue()).isFalse();
@@ -1515,7 +1516,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void opGe() throws Exception {
+	void opGe() {
 		expression = parse("3.0d >= 4.0d");
 		assertCanCompile(expression);
 		assertThat((Boolean) expression.getValue()).isFalse();
@@ -1577,7 +1578,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void opEq() throws Exception {
+	void opEq() {
 		String tvar = "35";
 		expression = parse("#root == 35");
 		assertThat((Boolean) expression.getValue(tvar)).isFalse();
@@ -1752,7 +1753,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void opNe() throws Exception {
+	void opNe() {
 		expression = parse("3.0d != 4.0d");
 		assertCanCompile(expression);
 		assertThat((Boolean) expression.getValue()).isTrue();
@@ -1867,14 +1868,14 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void opNe_SPR14863() throws Exception {
+	void opNe_SPR14863() {
 		SpelParserConfiguration configuration =
 				new SpelParserConfiguration(SpelCompilerMode.MIXED, ClassLoader.getSystemClassLoader());
 		SpelExpressionParser parser = new SpelExpressionParser(configuration);
 		Expression expression = parser.parseExpression("data['my-key'] != 'my-value'");
 
 		Map<String, String> data = new HashMap<>();
-		data.put("my-key", new String("my-value"));
+		data.put("my-key", "my-value");
 		StandardEvaluationContext context = new StandardEvaluationContext(new MyContext(data));
 		assertThat(expression.getValue(context, Boolean.class)).isFalse();
 		assertCanCompile(expression);
@@ -1882,7 +1883,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 		assertThat(expression.getValue(context, Boolean.class)).isFalse();
 
 		List<String> ls = new ArrayList<>();
-		ls.add(new String("foo"));
+		ls.add("foo");
 		context = new StandardEvaluationContext(ls);
 		expression = parse("get(0) != 'foo'");
 		assertThat(expression.getValue(context, Boolean.class)).isFalse();
@@ -1895,7 +1896,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void opEq_SPR14863() throws Exception {
+	void opEq_SPR14863() {
 		// Exercise the comparator invocation code that runs in
 		// equalityCheck() (called from interpreted and compiled code)
 		expression = parser.parseExpression("#aa==#bb");
@@ -1930,7 +1931,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 
 
 		List<String> ls = new ArrayList<>();
-		ls.add(new String("foo"));
+		ls.add("foo");
 		StandardEvaluationContext context = new StandardEvaluationContext(ls);
 		expression = parse("get(0) == 'foo'");
 		assertThat(expression.getValue(context, Boolean.class)).isTrue();
@@ -1943,7 +1944,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void opPlus() throws Exception {
+	void opPlus() {
 		expression = parse("2+2");
 		expression.getValue();
 		assertCanCompile(expression);
@@ -2036,7 +2037,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void opDivide_mixedNumberTypes() throws Exception {
+	void opDivide_mixedNumberTypes() {
 		PayloadX p = new PayloadX();
 
 		// This is what you had to do before the changes in order for it to compile:
@@ -2218,7 +2219,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void opPlus_mixedNumberTypes() throws Exception {
+	void opPlus_mixedNumberTypes() {
 		PayloadX p = new PayloadX();
 
 		// This is what you had to do before the changes in order for it to compile:
@@ -2428,7 +2429,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void opPlusString() throws Exception {
+	void opPlusString() {
 		expression = parse("'hello' + 'world'");
 		assertThat(expression.getValue()).isEqualTo("helloworld");
 		assertCanCompile(expression);
@@ -2484,7 +2485,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void opMinus() throws Exception {
+	void opMinus() {
 		expression = parse("2-2");
 		expression.getValue();
 		assertCanCompile(expression);
@@ -2572,7 +2573,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void opMinus_mixedNumberTypes() throws Exception {
+	void opMinus_mixedNumberTypes() {
 		PayloadX p = new PayloadX();
 
 		// This is what you had to do before the changes in order for it to compile:
@@ -2754,7 +2755,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void opMultiply_mixedNumberTypes() throws Exception {
+	void opMultiply_mixedNumberTypes() {
 		PayloadX p = new PayloadX();
 
 		// This is what you had to do before the changes in order for it to compile:
@@ -2936,7 +2937,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void opModulus_mixedNumberTypes() throws Exception {
+	void opModulus_mixedNumberTypes() {
 		PayloadX p = new PayloadX();
 
 		// This is what you had to do before the changes in order for it to compile:
@@ -3118,7 +3119,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void opMultiply() throws Exception {
+	void opMultiply() {
 		expression = parse("2*2");
 		expression.getValue();
 		assertCanCompile(expression);
@@ -3176,7 +3177,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void opDivide() throws Exception {
+	void opDivide() {
 		expression = parse("2/2");
 		expression.getValue();
 		assertCanCompile(expression);
@@ -3234,18 +3235,18 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void opModulus_12041() throws Exception {
+	void opModulus_12041() {
 		expression = parse("2%2");
 		assertThat(expression.getValue()).isEqualTo(0);
 		assertCanCompile(expression);
 		assertThat(expression.getValue()).isEqualTo(0);
 
 		expression = parse("payload%2==0");
-		assertThat(expression.getValue(new GenericMessageTestHelper<>(4), Boolean.TYPE)).isTrue();
-		assertThat(expression.getValue(new GenericMessageTestHelper<>(5), Boolean.TYPE)).isFalse();
+		assertThat(expression.getValue(new GenericMessageTestHelper<>(4), boolean.class)).isTrue();
+		assertThat(expression.getValue(new GenericMessageTestHelper<>(5), boolean.class)).isFalse();
 		assertCanCompile(expression);
-		assertThat(expression.getValue(new GenericMessageTestHelper<>(4), Boolean.TYPE)).isTrue();
-		assertThat(expression.getValue(new GenericMessageTestHelper<>(5), Boolean.TYPE)).isFalse();
+		assertThat(expression.getValue(new GenericMessageTestHelper<>(4), boolean.class)).isTrue();
+		assertThat(expression.getValue(new GenericMessageTestHelper<>(5), boolean.class)).isFalse();
 
 		expression = parse("8%3");
 		assertThat(expression.getValue()).isEqualTo(2);
@@ -3309,7 +3310,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void compilationOfBasicNullSafeMethodReference() {
+	void compilationOfBasicNullSafeMethodReference() {
 		SpelExpressionParser parser = new SpelExpressionParser(
 				new SpelParserConfiguration(SpelCompilerMode.OFF, getClass().getClassLoader()));
 		SpelExpression expression = parser.parseRaw("#it?.equals(3)");
@@ -3329,7 +3330,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void failsWhenSettingContextForExpression_SPR12326() {
+	void failsWhenSettingContextForExpression_SPR12326() {
 		SpelExpressionParser parser = new SpelExpressionParser(
 				new SpelParserConfiguration(SpelCompilerMode.OFF, getClass().getClassLoader()));
 		Person3 person = new Person3("foo", 1);
@@ -3356,7 +3357,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	 * Test variants of using T(...) and static/non-static method/property/field references.
 	 */
 	@Test
-	public void constructorReference_SPR13781() {
+	void constructorReference_SPR13781() {
 		// Static field access on a T() referenced type
 		expression = parser.parseExpression("T(java.util.Locale).ENGLISH");
 		assertThat(expression.getValue().toString()).isEqualTo("en");
@@ -3448,7 +3449,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void constructorReference_SPR12326() {
+	void constructorReference_SPR12326() {
 		String type = getClass().getName();
 		String prefix = "new " + type + ".Obj";
 
@@ -3509,7 +3510,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void methodReferenceMissingCastAndRootObjectAccessing_SPR12326() {
+	void methodReferenceMissingCastAndRootObjectAccessing_SPR12326() {
 		// Need boxing code on the 1 so that toString() can be called
 		expression = parser.parseExpression("1.toString()");
 		assertThat(expression.getValue()).isEqualTo("1");
@@ -3549,7 +3550,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	public void constructorReference() throws Exception {
+	void constructorReference() {
 		// simple ctor
 		expression = parser.parseExpression("new String('123')");
 		assertThat(expression.getValue()).isEqualTo("123");
@@ -3594,7 +3595,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	void methodReferenceReflectiveMethodSelectionWithVarargs() throws Exception {
+	void methodReferenceReflectiveMethodSelectionWithVarargs() {
 		TestClass10 tc = new TestClass10();
 
 		// Should call the non varargs version of concat
@@ -3702,16 +3703,16 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 		assertThat(tc.s).isEqualTo("aaabbbccc");
 		tc.reset();
 
-		// TODO Fails related to conversion service converting a String[] to satisfy Object...
-//		expression = parser.parseExpression("sixteen(stringArray)");
-//		assertCantCompile(expression);
-//		expression.getValue(tc);
-//		assertEquals("aaabbbccc", tc.s);
-//		assertCanCompile(expression);
-//		tc.reset();
-//		expression.getValue(tc);
-//		assertEquals("aaabbbccc", tc.s);
-//		tc.reset();
+		// TODO Determine why the String[] is passed as the first element of the Object... varargs array instead of the entire varargs array.
+		// expression = parser.parseExpression("sixteen(stringArray)");
+		// assertCantCompile(expression);
+		// expression.getValue(tc);
+		// assertThat(tc.s).isEqualTo("aaabbbccc");
+		// assertCanCompile(expression);
+		// tc.reset();
+		// expression.getValue(tc);
+		// assertThat(tc.s).isEqualTo("aaabbbccc");
+		// tc.reset();
 
 		// varargs int
 		expression = parser.parseExpression("twelve(1,2,3)");
@@ -4197,9 +4198,9 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	@Test
 	void methodReference_staticMethod() {
 		Expression expression = parser.parseExpression("T(Integer).valueOf(42)");
-		int resultI = expression.getValue(new TestClass1(), Integer.TYPE);
+		int resultI = expression.getValue(new TestClass1(), int.class);
 		assertCanCompile(expression);
-		int resultC = expression.getValue(new TestClass1(), Integer.TYPE);
+		int resultC = expression.getValue(new TestClass1(), int.class);
 		assertThat(resultI).isEqualTo(42);
 		assertThat(resultC).isEqualTo(42);
 	}
@@ -4227,19 +4228,19 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	@Test
 	void methodReference_simpleInstanceMethodNoArgReturnPrimitive() {
 		expression = parser.parseExpression("intValue()");
-		int resultI = expression.getValue(42, Integer.TYPE);
+		int resultI = expression.getValue(42, int.class);
 		assertThat(resultI).isEqualTo(42);
 		assertCanCompile(expression);
-		int resultC = expression.getValue(42, Integer.TYPE);
+		int resultC = expression.getValue(42, int.class);
 		assertThat(resultC).isEqualTo(42);
 	}
 
 	@Test
 	void methodReference_simpleInstanceMethodOneArgReturnPrimitive1() {
 		Expression expression = parser.parseExpression("indexOf('b')");
-		int resultI = expression.getValue("abc", Integer.TYPE);
+		int resultI = expression.getValue("abc", int.class);
 		assertCanCompile(expression);
-		int resultC = expression.getValue("abc", Integer.TYPE);
+		int resultC = expression.getValue("abc", int.class);
 		assertThat(resultI).isEqualTo(1);
 		assertThat(resultC).isEqualTo(1);
 	}
@@ -4247,10 +4248,10 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	@Test
 	void methodReference_simpleInstanceMethodOneArgReturnPrimitive2() {
 		expression = parser.parseExpression("charAt(2)");
-		char resultI = expression.getValue("abc", Character.TYPE);
+		char resultI = expression.getValue("abc", char.class);
 		assertThat(resultI).isEqualTo('c');
 		assertCanCompile(expression);
-		char resultC = expression.getValue("abc", Character.TYPE);
+		char resultC = expression.getValue("abc", char.class);
 		assertThat(resultC).isEqualTo('c');
 	}
 
@@ -4707,7 +4708,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	}
 
 	@Test
-	void variantGetter() throws Exception {
+	void variantGetter() {
 		Payload2Holder holder = new Payload2Holder();
 		StandardEvaluationContext ctx = new StandardEvaluationContext();
 		ctx.addPropertyAccessor(new MyAccessor());
@@ -4876,48 +4877,48 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	@Test
 	void compilerWithGenerics_12040_3() {
 		expression = parser.parseExpression("payload >= 2");
-		assertThat(expression.getValue(new GenericMessageTestHelper2<>(4), Boolean.TYPE)).isTrue();
+		assertThat(expression.getValue(new GenericMessageTestHelper2<>(4), boolean.class)).isTrue();
 		assertCanCompile(expression);
-		assertThat(expression.getValue(new GenericMessageTestHelper2<>(1), Boolean.TYPE)).isFalse();
+		assertThat(expression.getValue(new GenericMessageTestHelper2<>(1), boolean.class)).isFalse();
 
 		expression = parser.parseExpression("2 >= payload");
-		assertThat(expression.getValue(new GenericMessageTestHelper2<>(5), Boolean.TYPE)).isFalse();
+		assertThat(expression.getValue(new GenericMessageTestHelper2<>(5), boolean.class)).isFalse();
 		assertCanCompile(expression);
-		assertThat(expression.getValue(new GenericMessageTestHelper2<>(1), Boolean.TYPE)).isTrue();
+		assertThat(expression.getValue(new GenericMessageTestHelper2<>(1), boolean.class)).isTrue();
 
 		expression = parser.parseExpression("payload > 2");
-		assertThat(expression.getValue(new GenericMessageTestHelper2<>(4), Boolean.TYPE)).isTrue();
+		assertThat(expression.getValue(new GenericMessageTestHelper2<>(4), boolean.class)).isTrue();
 		assertCanCompile(expression);
-		assertThat(expression.getValue(new GenericMessageTestHelper2<>(1), Boolean.TYPE)).isFalse();
+		assertThat(expression.getValue(new GenericMessageTestHelper2<>(1), boolean.class)).isFalse();
 
 		expression = parser.parseExpression("2 > payload");
-		assertThat(expression.getValue(new GenericMessageTestHelper2<>(5), Boolean.TYPE)).isFalse();
+		assertThat(expression.getValue(new GenericMessageTestHelper2<>(5), boolean.class)).isFalse();
 		assertCanCompile(expression);
-		assertThat(expression.getValue(new GenericMessageTestHelper2<>(1), Boolean.TYPE)).isTrue();
+		assertThat(expression.getValue(new GenericMessageTestHelper2<>(1), boolean.class)).isTrue();
 
 		expression = parser.parseExpression("payload <=2");
-		assertThat(expression.getValue(new GenericMessageTestHelper2<>(1), Boolean.TYPE)).isTrue();
+		assertThat(expression.getValue(new GenericMessageTestHelper2<>(1), boolean.class)).isTrue();
 		assertCanCompile(expression);
-		assertThat(expression.getValue(new GenericMessageTestHelper2<>(6), Boolean.TYPE)).isFalse();
+		assertThat(expression.getValue(new GenericMessageTestHelper2<>(6), boolean.class)).isFalse();
 
 		expression = parser.parseExpression("2 <= payload");
-		assertThat(expression.getValue(new GenericMessageTestHelper2<>(1), Boolean.TYPE)).isFalse();
+		assertThat(expression.getValue(new GenericMessageTestHelper2<>(1), boolean.class)).isFalse();
 		assertCanCompile(expression);
-		assertThat(expression.getValue(new GenericMessageTestHelper2<>(6), Boolean.TYPE)).isTrue();
+		assertThat(expression.getValue(new GenericMessageTestHelper2<>(6), boolean.class)).isTrue();
 
 		expression = parser.parseExpression("payload < 2");
-		assertThat(expression.getValue(new GenericMessageTestHelper2<>(1), Boolean.TYPE)).isTrue();
+		assertThat(expression.getValue(new GenericMessageTestHelper2<>(1), boolean.class)).isTrue();
 		assertCanCompile(expression);
-		assertThat(expression.getValue(new GenericMessageTestHelper2<>(6), Boolean.TYPE)).isFalse();
+		assertThat(expression.getValue(new GenericMessageTestHelper2<>(6), boolean.class)).isFalse();
 
 		expression = parser.parseExpression("2 < payload");
-		assertThat(expression.getValue(new GenericMessageTestHelper2<>(1), Boolean.TYPE)).isFalse();
+		assertThat(expression.getValue(new GenericMessageTestHelper2<>(1), boolean.class)).isFalse();
 		assertCanCompile(expression);
-		assertThat(expression.getValue(new GenericMessageTestHelper2<>(6), Boolean.TYPE)).isTrue();
+		assertThat(expression.getValue(new GenericMessageTestHelper2<>(6), boolean.class)).isTrue();
 	}
 
 	@Test
-	void indexerMapAccessor_12045() throws Exception {
+	void indexerMapAccessor_12045() {
 		SpelParserConfiguration spc = new SpelParserConfiguration(
 				SpelCompilerMode.IMMEDIATE,getClass().getClassLoader());
 		SpelExpressionParser sep = new SpelExpressionParser(spc);
@@ -5302,18 +5303,6 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 		assertThatException().isThrownBy(expression::getValue);
 	}
 
-	public static void assertIsCompiled(Expression expression) {
-		try {
-			Field field = SpelExpression.class.getDeclaredField("compiledAst");
-			field.setAccessible(true);
-			Object object = field.get(expression);
-			assertThat(object).isNotNull();
-		}
-		catch (Exception ex) {
-			throw new AssertionError(ex.getMessage(), ex);
-		}
-	}
-
 
 	// Nested types
 
@@ -5404,24 +5393,24 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 		}
 
 		@Override
-		public boolean canRead(EvaluationContext context, Object target, String name) throws AccessException {
+		public boolean canRead(EvaluationContext context, Object target, String name) {
 			// target is a Payload2 instance
 			return true;
 		}
 
 		@Override
-		public TypedValue read(EvaluationContext context, Object target, String name) throws AccessException {
+		public TypedValue read(EvaluationContext context, Object target, String name) {
 			Payload2 payload2 = (Payload2)target;
 			return new TypedValue(payload2.getField(name));
 		}
 
 		@Override
-		public boolean canWrite(EvaluationContext context, Object target, String name) throws AccessException {
+		public boolean canWrite(EvaluationContext context, Object target, String name) {
 			return false;
 		}
 
 		@Override
-		public void write(EvaluationContext context, Object target, String name, Object newValue) throws AccessException {
+		public void write(EvaluationContext context, Object target, String name, Object newValue) {
 		}
 
 		@Override
@@ -5461,7 +5450,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 	static class CompilableMapAccessor implements CompilablePropertyAccessor {
 
 		@Override
-		public boolean canRead(EvaluationContext context, Object target, String name) throws AccessException {
+		public boolean canRead(EvaluationContext context, Object target, String name) {
 			Map<?,?> map = (Map<?,?>) target;
 			return map.containsKey(name);
 		}
@@ -5477,13 +5466,13 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 		}
 
 		@Override
-		public boolean canWrite(EvaluationContext context, Object target, String name) throws AccessException {
+		public boolean canWrite(EvaluationContext context, Object target, String name) {
 			return true;
 		}
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public void write(EvaluationContext context, Object target, String name, Object newValue) throws AccessException {
+		public void write(EvaluationContext context, Object target, String name, Object newValue) {
 			Map<String, Object> map = (Map<String, Object>) target;
 			map.put(name, newValue);
 		}
@@ -6092,7 +6081,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 		public Obj3(int... params) {
 			StringBuilder b = new StringBuilder();
 			for (int param: params) {
-				b.append(Integer.toString(param));
+				b.append(param);
 			}
 			output = b.toString();
 		}
@@ -6101,10 +6090,10 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 			StringBuilder b = new StringBuilder();
 			b.append(s);
 			b.append(':');
-			b.append(Float.toString(f));
+			b.append(f);
 			b.append(':');
 			for (int param: ints) {
-				b.append(Integer.toString(param));
+				b.append(param);
 			}
 			output = b.toString();
 		}
@@ -6118,7 +6107,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 		public Obj4(int[] params) {
 			StringBuilder b = new StringBuilder();
 			for (int param: params) {
-				b.append(Integer.toString(param));
+				b.append(param);
 			}
 			output = b.toString();
 		}
@@ -6302,15 +6291,7 @@ public class SpelCompilationCoverageTests extends AbstractExpressionTests {
 		@Override
 		public int compareTo(Apple that) {
 			this.gotComparedTo = that;
-			if (this.i < that.i) {
-				return -1;
-			}
-			else if (this.i > that.i) {
-				return +1;
-			}
-			else {
-				return 0;
-			}
+			return Integer.compare(this.i, that.i);
 		}
 	}
 

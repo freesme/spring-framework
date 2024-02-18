@@ -29,10 +29,10 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.concurrent.ConcurrentMapCache;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.lang.Nullable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -43,7 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Juergen Hoeller
  * @since 6.1
  */
-public class ReactiveCachingTests {
+class ReactiveCachingTests {
 
 	@ParameterizedTest
 	@ValueSource(classes = {EarlyCacheHitDeterminationConfig.class,
@@ -51,7 +51,7 @@ public class ReactiveCachingTests {
 			LateCacheHitDeterminationConfig.class,
 			LateCacheHitDeterminationWithValueWrapperConfig.class})
 	void cacheHitDetermination(Class<?> configClass) {
-		ApplicationContext ctx = new AnnotationConfigApplicationContext(configClass, ReactiveCacheableService.class);
+		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(configClass, ReactiveCacheableService.class);
 		ReactiveCacheableService service = ctx.getBean(ReactiveCacheableService.class);
 
 		Object key = new Object();
@@ -107,6 +107,8 @@ public class ReactiveCachingTests {
 
 		assertThat(r1).isNotNull();
 		assertThat(r1).isSameAs(r2).isSameAs(r3);
+
+		ctx.close();
 	}
 
 
@@ -170,6 +172,11 @@ public class ReactiveCachingTests {
 						public CompletableFuture<?> retrieve(Object key) {
 							return CompletableFuture.completedFuture(lookup(key));
 						}
+						@Override
+						public void put(Object key, @Nullable Object value) {
+							assertThat(get(key)).as("Double put").isNull();
+							super.put(key, value);
+						}
 					};
 				}
 			};
@@ -191,6 +198,11 @@ public class ReactiveCachingTests {
 						public CompletableFuture<?> retrieve(Object key) {
 							Object value = lookup(key);
 							return CompletableFuture.completedFuture(value != null ? toValueWrapper(value) : null);
+						}
+						@Override
+						public void put(Object key, @Nullable Object value) {
+							assertThat(get(key)).as("Double put").isNull();
+							super.put(key, value);
 						}
 					};
 				}

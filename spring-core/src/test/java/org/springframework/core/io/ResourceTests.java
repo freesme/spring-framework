@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ import static org.junit.jupiter.api.Named.named;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
- * Unit tests for various {@link Resource} implementations.
+ * Tests for various {@link Resource} implementations.
  *
  * @author Juergen Hoeller
  * @author Chris Beams
@@ -172,7 +172,7 @@ class ResourceTests {
 		@Test
 		void hasDescription() {
 			Resource resource = new ByteArrayResource("testString".getBytes(), "my description");
-			assertThat(resource.getDescription().contains("my description")).isTrue();
+			assertThat(resource.getDescription()).contains("my description");
 		}
 	}
 
@@ -212,7 +212,7 @@ class ResourceTests {
 		void hasDescription() {
 			InputStream is = new ByteArrayInputStream("testString".getBytes());
 			Resource resource = new InputStreamResource(is, "my description");
-			assertThat(resource.getDescription().contains("my description")).isTrue();
+			assertThat(resource.getDescription()).contains("my description");
 		}
 	}
 
@@ -302,9 +302,26 @@ class ResourceTests {
 
 		@Test
 		void filenameIsExtractedFromFilePath() throws Exception {
+			assertThat(new UrlResource("file:test?argh").getFilename()).isEqualTo("test");
+			assertThat(new UrlResource("file:/test?argh").getFilename()).isEqualTo("test");
+			assertThat(new UrlResource("file:test.txt?argh").getFilename()).isEqualTo("test.txt");
+			assertThat(new UrlResource("file:/test.txt?argh").getFilename()).isEqualTo("test.txt");
+			assertThat(new UrlResource("file:/dir/test?argh").getFilename()).isEqualTo("test");
 			assertThat(new UrlResource("file:/dir/test.txt?argh").getFilename()).isEqualTo("test.txt");
 			assertThat(new UrlResource("file:\\dir\\test.txt?argh").getFilename()).isEqualTo("test.txt");
 			assertThat(new UrlResource("file:\\dir/test.txt?argh").getFilename()).isEqualTo("test.txt");
+		}
+
+		@Test
+		void filenameIsExtractedFromURL() throws Exception {
+			assertThat(new UrlResource(new URL("file:test?argh")).getFilename()).isEqualTo("test");
+			assertThat(new UrlResource(new URL("file:/test?argh")).getFilename()).isEqualTo("test");
+			assertThat(new UrlResource(new URL("file:test.txt?argh")).getFilename()).isEqualTo("test.txt");
+			assertThat(new UrlResource(new URL("file:/test.txt?argh")).getFilename()).isEqualTo("test.txt");
+			assertThat(new UrlResource(new URL("file:/dir/test?argh")).getFilename()).isEqualTo("test");
+			assertThat(new UrlResource(new URL("file:/dir/test.txt?argh")).getFilename()).isEqualTo("test.txt");
+			assertThat(new UrlResource(new URL("file:\\dir\\test.txt?argh")).getFilename()).isEqualTo("test.txt");
+			assertThat(new UrlResource(new URL("file:\\dir/test.txt?argh")).getFilename()).isEqualTo("test.txt");
 		}
 
 		@Test
@@ -411,7 +428,7 @@ class ResourceTests {
 			}
 
 			@Override
-			protected void customizeConnection(HttpURLConnection con) throws IOException {
+			protected void customizeConnection(HttpURLConnection con) {
 				con.setRequestProperty("Framework-Name", "Spring");
 			}
 		}
@@ -419,18 +436,17 @@ class ResourceTests {
 		class ResourceDispatcher extends Dispatcher {
 
 			@Override
-			public MockResponse dispatch(RecordedRequest request) throws InterruptedException {
+			public MockResponse dispatch(RecordedRequest request) {
 				if (request.getPath().equals("/resource")) {
-					switch (request.getMethod()) {
-						case "HEAD":
-							return new MockResponse()
+					return switch (request.getMethod()) {
+						case "HEAD" -> new MockResponse()
 									.addHeader("Content-Length", "6");
-						case "GET":
-							return new MockResponse()
+						case "GET" -> new MockResponse()
 									.addHeader("Content-Length", "6")
 									.addHeader("Content-Type", "text/plain")
 									.setBody("Spring");
-					}
+						default -> new MockResponse().setResponseCode(404);
+					};
 				}
 				return new MockResponse().setResponseCode(404);
 			}

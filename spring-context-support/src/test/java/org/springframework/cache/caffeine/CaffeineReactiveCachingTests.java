@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -42,12 +41,12 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Juergen Hoeller
  * @since 6.1
  */
-public class CaffeineReactiveCachingTests {
+class CaffeineReactiveCachingTests {
 
 	@ParameterizedTest
 	@ValueSource(classes = {AsyncCacheModeConfig.class, AsyncCacheModeConfig.class})
 	void cacheHitDetermination(Class<?> configClass) {
-		ApplicationContext ctx = new AnnotationConfigApplicationContext(configClass, ReactiveCacheableService.class);
+		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(configClass, ReactiveCacheableService.class);
 		ReactiveCacheableService service = ctx.getBean(ReactiveCacheableService.class);
 
 		Object key = new Object();
@@ -103,6 +102,8 @@ public class CaffeineReactiveCachingTests {
 
 		assertThat(r1).isNotNull();
 		assertThat(r1).isSameAs(r2).isSameAs(r3);
+
+		ctx.close();
 	}
 
 

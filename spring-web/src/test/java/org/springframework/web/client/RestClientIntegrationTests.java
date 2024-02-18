@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 the original author or authors.
+ * Copyright 2002-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -166,7 +166,7 @@ class RestClientIntegrationTests {
 		ValueContainer<Pojo> result = this.restClient.get()
 				.uri("/json").accept(MediaType.APPLICATION_JSON)
 				.retrieve()
-				.body(new ParameterizedTypeReference<ValueContainer<Pojo>>() {});
+				.body(new ParameterizedTypeReference<>() {});
 
 		assertThat(result.getContainerValue()).isNotNull();
 		Pojo pojo = result.getContainerValue();
@@ -191,7 +191,7 @@ class RestClientIntegrationTests {
 		ValueContainer<List<Pojo>> result = this.restClient.get()
 				.uri("/json").accept(MediaType.APPLICATION_JSON)
 				.retrieve()
-				.body(new ParameterizedTypeReference<ValueContainer<List<Pojo>>>() {});
+				.body(new ParameterizedTypeReference<>() {});
 
 		assertThat(result.containerValue).isNotNull();
 		assertThat(result.containerValue).containsExactly(new Pojo("foofoo", "barbar"));
@@ -344,6 +344,22 @@ class RestClientIntegrationTests {
 				.uri("/null")
 				.retrieve()
 				.body(Map.class);
+
+		assertThat(result).isNull();
+	}
+
+	@ParameterizedRestClientTest
+	void retrieveJsonEmpty(ClientHttpRequestFactory requestFactory) {
+		startServer(requestFactory);
+
+		prepareResponse(response -> response
+				.setResponseCode(200)
+				.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE));
+
+		Pojo result = this.restClient.get()
+				.uri("/null")
+				.retrieve()
+				.body(Pojo.class);
 
 		assertThat(result).isNull();
 	}
@@ -570,6 +586,27 @@ class RestClientIntegrationTests {
 								})
 						.body(String.class)
 		);
+
+		expectRequestCount(1);
+		expectRequest(request -> assertThat(request.getPath()).isEqualTo("/greeting"));
+	}
+
+	@ParameterizedRestClientTest
+	void statusHandlerIOException(ClientHttpRequestFactory requestFactory) {
+		startServer(requestFactory);
+
+		prepareResponse(response -> response.setResponseCode(500)
+				.setHeader("Content-Type", "text/plain").setBody("Internal Server error"));
+
+		assertThatExceptionOfType(RestClientException.class).isThrownBy(() ->
+				this.restClient.get()
+						.uri("/greeting")
+						.retrieve()
+						.onStatus(HttpStatusCode::is5xxServerError, (request, response) -> {
+							throw new IOException("500 error!");
+						})
+						.body(String.class)
+		).withCauseInstanceOf(IOException.class);
 
 		expectRequestCount(1);
 		expectRequest(request -> assertThat(request.getPath()).isEqualTo("/greeting"));
@@ -817,6 +854,50 @@ class RestClientIntegrationTests {
 		assertThat(result).isEqualTo("Hello Spring!");
 
 		expectRequestCount(2);
+	}
+
+	@ParameterizedRestClientTest
+	void defaultHeaders(ClientHttpRequestFactory requestFactory) {
+		startServer(requestFactory);
+
+		prepareResponse(response -> response.setHeader("Content-Type", "text/plain")
+				.setBody("Hello Spring!"));
+
+		RestClient headersClient = this.restClient.mutate()
+				.defaultHeaders(headers -> headers.add("foo", "bar"))
+				.build();
+
+		String result = headersClient.get()
+				.uri("/greeting")
+				.retrieve()
+				.body(String.class);
+
+		assertThat(result).isEqualTo("Hello Spring!");
+
+		expectRequestCount(1);
+		expectRequest(request -> assertThat(request.getHeader("foo")).isEqualTo("bar"));
+	}
+
+	@ParameterizedRestClientTest
+	void defaultRequest(ClientHttpRequestFactory requestFactory) {
+		startServer(requestFactory);
+
+		prepareResponse(response -> response.setHeader("Content-Type", "text/plain")
+				.setBody("Hello Spring!"));
+
+		RestClient headersClient = this.restClient.mutate()
+				.defaultRequest(request -> request.header("foo", "bar"))
+				.build();
+
+		String result = headersClient.get()
+				.uri("/greeting")
+				.retrieve()
+				.body(String.class);
+
+		assertThat(result).isEqualTo("Hello Spring!");
+
+		expectRequestCount(1);
+		expectRequest(request -> assertThat(request.getHeader("foo")).isEqualTo("bar"));
 	}
 
 
