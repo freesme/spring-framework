@@ -99,6 +99,7 @@ public class TomcatLoadTimeWeaver implements LoadTimeWeaver {
 		try {
 			this.addTransformerMethod.invoke(this.classLoader, transformer);
 		}
+
 		catch (InvocationTargetException ex) {
 			throw new IllegalStateException("Tomcat addTransformer method threw exception", ex.getCause());
 		}
